@@ -49,7 +49,11 @@ def ftp_connect(user,password):
 	ftp_p = spec_port if spec_port else 21
 	try:
 		ftp = FTP()
-	except:
+		ftp.connect(ip,ftp_p)
+		ftp.login(user,password)
+		msg += pGreen('-- Success!!!')
+	except Exception:
+		msg += pRed('-- Failed!!!')
 		pass
 	print(msg)
 	return
