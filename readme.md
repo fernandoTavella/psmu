@@ -1,7 +1,9 @@
-**PASSWORD SPRAY MULTI USE (PSMU) AKA SPRAYETTE***
+#***PASSWORD SPRAY MULTI USE (PSMU) AKA SPRAYETTE***
 # Introduction
-	The idea of sprayette was to have a tool that it can be used to perform a password spray over multiple services,
-	ssh,ftp,telnet,smb,mysql so far. With the possiblity of adding a timer for the process so it can "less noisy" and in some cases avoid an account lockout since its a brute force attack.
+	The idea of sprayette was to have a tool that it can be used to perform a password spray over multiple 
+	services like ssh,ftp,telnet,smb,mysql so far. 
+	Also adds the possiblity of use a timer for the process so it can "less noisy" and in some cases avoid
+	an account lockout since its a brute force attack.
 
 
 # Requisites
@@ -13,8 +15,20 @@
 	ftplib
 
 # Usage
-	./sprayette.py PROTOCOL IP USERS_FILE_LIST PASS_FILE_LIST ATTEMPS TIMER(Minutes)
-	optional -p --port to change the port depending on the services
+	root@kali# ./sprayette.py -h
+	usage: sprayette.py [-h] [-p PORT] protocol ip users passwords attemps timer
+
+	positional arguments:
+		protocol              Protocol to perform the spray (telnet,ssh,ftp,smb,mysql)
+		ip                    The ip to perform the spray
+		users                 Users list (one per line)
+		passwords             Passwords list (one per line)
+		attemps               The amount of attemps before the timer starts
+		timer                 The sleep time (minutes)
+
+		optional arguments:
+		 -h, --help            show this help message and exit
+		 -p PORT, --port PORT
 
 # Example
 	root@kali# ./sprayette.py ssh 192.168.0.146 user.txt passwords.txt 2 1

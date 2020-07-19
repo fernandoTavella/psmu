@@ -19,7 +19,7 @@ def pRed(value): return '\033[91m{}\033[00m'.format(value)
 def pWarning(value): return '\033[93m{}\033[00m'.format(value)
 #Arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('protocol', type=str,help='Protocol to perform the spray (telnet,ssh,ftp,smb)')
+parser.add_argument('protocol', type=str,help='Protocol to perform the spray (telnet,ssh,ftp,smb,mysql)')
 parser.add_argument('ip',help='The ip to perform the spray')
 parser.add_argument('-p','--port',type=int)
 parser.add_argument('users',help='Users list (one per line)')
