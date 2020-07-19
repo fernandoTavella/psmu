@@ -1,4 +1,4 @@
-#***PASSWORD SPRAY MULTI USE (PSMU) AKA SPRAYETTE***
+## PASSWORD SPRAY MULTI USE (PSMU) AKA SPRAYETTE
 # Introduction
 	The idea of sprayette was to have a tool that it can be used to perform a password spray over multiple 
 	services like ssh,ftp,telnet,smb,mysql so far. 
