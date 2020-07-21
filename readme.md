@@ -2,7 +2,7 @@
 # Introduction
 	The idea of sprayette was to have a tool that it can be used to perform a password spray over multiple 
 	services like ssh,ftp,telnet,smb,mysql so far. 
-	Also adds the possiblity of use a timer for the process so it can "less noisy" and in some cases avoid
+	Also adds the possiblity of a timer for the process, so it can be "less noisy" and in some cases avoid
 	an account lockout since its a brute force attack.
 
 
